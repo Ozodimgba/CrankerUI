@@ -4,19 +4,23 @@ import { RPC, authority, programId, sleep } from "./utils";
 import { AnchorProvider, BN, Wallet } from "@coral-xyz/anchor";
 import { Logger } from 'tslog';
 import { error } from "console";
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 async function start(
-    // marketPubKey: PublicKey, interval: number, 
     ) {
 
   const {
     ENDPOINT_URL,
     KEYPAIR,
     INTERVAL,
-    MAX_UNIQUE_ACCOUNTS,
+    MARKET_ID,
     CONSUME_EVENTS_LIMIT,
     CLUSTER,
   } = process.env;
+
+  
    const wallet = new Wallet(authority);
 
    const log = new Logger({name: "openbook-cranker-V2", minLevel: 1});
@@ -24,9 +28,17 @@ async function start(
    const cluster = CLUSTER || 'devnet';
    const interval = INTERVAL || 1000;
    const limit = new BN(CONSUME_EVENTS_LIMIT || 7)
+   const marketId = MARKET_ID || ""
+
+   
 
    if(!CLUSTER){
-    log.warn("Cluster is not set, using fallback cluster")
+    log.warn("Cluster is not set, using fallback cluster");
+   }
+
+   if(!MARKET_ID){
+    log.fatal("Market ID error")
+    throw new error("No Market id address")
    }
 
    if(!CONSUME_EVENTS_LIMIT){
@@ -53,8 +65,7 @@ async function start(
 
    const client = new OpenBookV2Client(provider, programId);
 
-   const marketPubkey = new PublicKey("8tnQJ5FG1SiB1rdpoyP8gFULjTU8BGiVXzabTUuSBrQB");
-
+   const marketPubkey = new PublicKey(marketId);
    log.info("MARKET ID: "+ marketPubkey.toBase58())
 
    const marketObject = await client.getMarket(marketPubkey)
