@@ -1,0 +1,83 @@
+import { Connection, LAMPORTS_PER_SOL, PublicKey, clusterApiUrl } from "@solana/web3.js";
+import { MarketAccount, OpenBookV2Client } from "./ts/client/src";
+import { RPC, authority, programId, sleep } from "./utils";
+import { AnchorProvider, BN, Wallet } from "@coral-xyz/anchor";
+import { Logger } from 'tslog';
+import { error } from "console";
+
+async function start(
+    // marketPubKey: PublicKey, interval: number, 
+    ) {
+
+  const {
+    ENDPOINT_URL,
+    KEYPAIR,
+    INTERVAL,
+    MAX_UNIQUE_ACCOUNTS,
+    CONSUME_EVENTS_LIMIT,
+    CLUSTER,
+  } = process.env;
+   const wallet = new Wallet(authority);
+
+   const log = new Logger({name: "openbook-cranker-V2", minLevel: 1});
+
+   const cluster = CLUSTER || 'devnet';
+   const interval = INTERVAL || 1000;
+   const limit = new BN(CONSUME_EVENTS_LIMIT || 7)
+
+   if(!CLUSTER){
+    log.warn("Cluster is not set, using fallback cluster")
+   }
+
+   if(!CONSUME_EVENTS_LIMIT){
+    log.warn("Limit is not set, using fallback limit")
+   }
+   
+   if(!INTERVAL){
+    log.warn("Interval is not set, will crank every 1 second")
+   }
+   
+
+   const provider = new AnchorProvider(new Connection(clusterApiUrl("devnet")), wallet, {
+    commitment: "confirmed",
+   });
+
+  while(true){
+    try{
+      
+   log.info("Cranking by: "+ authority.publicKey.toBase58())
+   
+   const balance: number | undefined = await provider.connection.getBalance(authority.publicKey)
+
+   log.info(("BALANCE: "+ balance / LAMPORTS_PER_SOL) + " SOL")
+
+   const client = new OpenBookV2Client(provider, programId);
+
+   const marketPubkey = new PublicKey("8tnQJ5FG1SiB1rdpoyP8gFULjTU8BGiVXzabTUuSBrQB");
+
+   log.info("MARKET ID: "+ marketPubkey.toBase58())
+
+   const marketObject = await client.getMarket(marketPubkey)
+
+  if (!marketObject) {
+    throw "No market";
+  }
+
+  const events = await client.getEventHeap(marketObject.eventHeap)
+
+  const remainingAccts: PublicKey[] = await client.getAccountsToConsume(marketObject)
+
+    if(remainingAccts.length > 0) {
+      const tx = await client.consumeEvents(marketPubkey, marketObject, limit, remainingAccts)
+      log.info("Signature: "+ tx)
+    }
+  await sleep(interval)
+  } catch(e){
+    log.error(e);
+
+  }
+  };  
+
+}
+
+start();
