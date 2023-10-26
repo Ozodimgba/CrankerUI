@@ -13,7 +13,6 @@ async function start(
 
   const {
     ENDPOINT_URL,
-    KEYPAIR,
     INTERVAL,
     MARKET_ID,
     CONSUME_EVENTS_LIMIT,
@@ -26,7 +25,7 @@ async function start(
    const log = new Logger({name: "openbook-cranker-V2", minLevel: 1});
 
    const cluster = CLUSTER || 'devnet';
-   const interval = INTERVAL || 1000;
+   const interval = INTERVAL || 1000 * 10;
    const limit = new BN(CONSUME_EVENTS_LIMIT || 7)
    const marketId = MARKET_ID || ""
 
@@ -66,7 +65,7 @@ async function start(
    const client = new OpenBookV2Client(provider, programId);
 
    const marketPubkey = new PublicKey(marketId);
-   log.info("MARKET ID: "+ marketPubkey.toBase58())
+   log.info("CRANKING MARKET: "+ marketPubkey.toBase58())
 
    const marketObject = await client.getMarket(marketPubkey)
 
