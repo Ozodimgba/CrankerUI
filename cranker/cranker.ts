@@ -45,7 +45,7 @@ async function start(
    }
    
    if(!INTERVAL){
-    log.warn("Interval is not set, will crank every 1 second")
+    log.warn("Interval is not set, will crank every 10 second")
    }
    
 
